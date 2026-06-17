@@ -1,39 +1,84 @@
 # HumFinder / MultiMatch
 
-A humming-based song similarity detection system with a React frontend and Flask backend.
+HumFinder is a humming-based song similarity detection system that identifies songs from short vocal snippets or hummed melodies. The project combines a React frontend, a Flask API, and a melody-matching pipeline built around pitch extraction, contour normalization, and similarity scoring.
 
-**Overview**
+## Project Overview
 
-- **Project:** Identify songs from short humming or vocal recordings.
-- **Frontend:** Vite + React application (located in `frontend/app`).
-- **Backend:** Flask API server providing song database management and humming matching (located in `backend/App.py`).
-- **Core idea:** Extract pitch contours from audio (using `librosa`), convert to simplified melodic contours, and compare using dynamic time-warping / signature distance to find best matches.
+- **Frontend:** Vite + React application in `frontend/app`
+- **Backend:** Flask API server in `backend/App.py`
+- **Core workflow:** extract pitch from audio, reduce it to a melodic contour, compare it against the database, and rank the closest matches
 
-**Quick Links**
-- File: [backend/App.py](backend/App.py)
-- File: [frontend/app/package.json](frontend/app/package.json)
-- File: [README.md](README.md)
+## Features
 
-**Screenshots**
-- To include the screenshots you supplied, copy them into the project screenshots folder and name them `screenshot-1.png`, `screenshot-2.png`, etc. Example PowerShell commands (run from the project root):
+- Identify songs from humming or short vocal recordings
+- Robust pitch extraction with `librosa.pyin`
+- Melody contour normalization to focus on relative motion instead of exact key
+- DTW-based similarity matching against the song database
+- Song library management through a REST API
+- Interactive React dashboard for upload, match, and analysis flows
 
-```powershell
-mkdir -Force docs\screenshots
-Copy-Item "C:\Users\LENOVO\OneDrive\الصور\لقطات الشاشة\لقطة شاشة 2026-06-17 230503.png" docs\screenshots\screenshot-1.png
-Copy-Item "C:\Users\LENOVO\OneDrive\الصور\لقطات الشاشة\لقطة شاشة 2026-06-17 225902.png" docs\screenshots\screenshot-2.png
-Copy-Item "C:\Users\LENOVO\OneDrive\الصور\لقطات الشاشة\لقطة شاشة 2026-06-17 225850.png" docs\screenshots\screenshot-3.png
-Copy-Item "C:\Users\LENOVO\OneDrive\الصور\لقطات الشاشة\لقطة شاشة 2026-06-17 225753.png" docs\screenshots\screenshot-4.png
-Copy-Item "C:\Users\LENOVO\OneDrive\الصور\لقطات الشاشة\لقطة شاشة 2026-06-17 223552.png" docs\screenshots\screenshot-5.png
-Copy-Item "C:\Users\LENOVO\OneDrive\الصور\لقطات الشاشة\لقطة شاشة 2026-06-17 223502.png" docs\screenshots\screenshot-6.png
+## Tech Stack
+
+### Frontend
+- React
+- Vite
+- Framer Motion
+- Lucide React
+- Recharts
+
+### Backend
+- Flask
+- Flask-CORS
+
+### Audio Processing
+- Librosa
+- NumPy
+- SciPy
+
+### Storage
+- JSON metadata in `database/metadata.json`
+- Serialized melody signatures in `.sig` files inside `backend/database/`
+
+## Repository Layout
+
+- `backend/` - Flask API, matching engine, audio processing utilities, and song database files
+- `frontend/app/` - React UI for humming and song library interactions
+- `Asset/` - Project screenshots used in this README
+
+## Screenshots
+
+The screenshots you provided are now stored in the repo-local `Asset/` folder and embedded below.
+
+![Screenshot 1](Asset/1.png)
+
+![Screenshot 2](Asset/2.png)
+
+![Screenshot 3](Asset/3.png)
+
+![Screenshot 4](Asset/4.png)
+
+![Screenshot 5](Asset/5.png)
+
+![Screenshot 6](Asset/6.png)
+
+## Architecture
+
+```mermaid
+flowchart TD
+	A[User] --> B[React Frontend]
+	B --> C[Flask API]
+	C --> D[Audio Preprocessing]
+	D --> E[pYIN Pitch Extraction]
+	E --> F[Contour Generation]
+	F --> G[DTW Similarity Matching]
+	G --> H[Song Database]
+	G --> I[Match Results + Metadata]
+	I --> B
 ```
 
-After copying, you can embed them in the README using standard Markdown such as:
+The code path behind this flow is implemented in `backend/DATA/melody_matcher.py` and exposed through the Flask routes in `backend/DATA/App.py`.
 
-```markdown
-![Match View](docs/screenshots/screenshot-1.png)
-```
-
-**Quickstart (Development)**
+## Quickstart (Development)
 
 - Backend (Windows, using `py` launcher):
 ```powershell
@@ -52,7 +97,7 @@ npm run dev -- --host 0.0.0.0
 # Open http://localhost:5173/
 ```
 
-**API Endpoints (summary)**
+## API Endpoints
 - **GET** `/api/health` — health check and number of songs loaded.
 - **GET** `/api/songs` — list songs in database and brief metadata.
 - **POST** `/api/songs` — add a new song (multipart/form-data: `file`, `title`, `artist`, `duration`).
@@ -60,49 +105,82 @@ npm run dev -- --host 0.0.0.0
 - **POST** `/api/match` — match an uploaded humming file against the database (multipart/form-data: `file`, optional `top_k`).
 - (If present) **POST** `/api/analyze` — compare two match JSON files (used by the analysis dashboard). If you rely on analysis flows, ensure the backend exposing `/api/analyze` is running.
 
-**Methodology (Technical Explanation)**
+### Example Response
 
-- **Audio preprocessing**: Input audio (wav/mp3/m4a) is converted to mono and resampled to a canonical sample rate (e.g., 22050 Hz) using `librosa.load`.
+The matcher returns a detailed payload with similarity values normalized from the DTW distance using `1 / (1 + distance)`.
 
-- **Pitch extraction**: The pipeline uses `librosa.pyin` (pYIN) to extract frame-wise fundamental frequency (F0) estimates along with voiced/unvoiced flags and confidence scores. pYIN is robust for vocal melody tracking and handles pitch tracking over noisy frames.
+```json
+{
+	"query": {
+		"pitch_length": 214,
+		"contour_length": 213,
+		"valid_pitch_ratio": 0.78
+	},
+	"matches": [
+		{
+			"song_id": "123",
+			"title": "Shape of You",
+			"artist": "Ed Sheeran",
+			"distance": 0.11,
+			"similarity_score": 0.90,
+			"confidence": "high"
+		},
+		{
+			"song_id": "456",
+			"title": "Perfect",
+			"artist": "Ed Sheeran",
+			"distance": 0.22,
+			"similarity_score": 0.82,
+			"confidence": "high"
+		}
+	]
+}
+```
 
-- **Cleaning and interpolation**: Low-confidence frames and unvoiced frames are masked (set to NaN). Short gaps are interpolated (configurable maximum gap) and a median filter is applied to remove spurious outliers.
+## Methodology
 
-- **Contour construction**: Continuous pitch values are converted into a simplified melodic contour: for each frame, a label of `+1` (rising), `0` (stable), or `-1` (falling) is computed using pitch differences and a small threshold to avoid over-sensitivity to micro-tremor.
+- **Audio preprocessing:** Input audio is converted to mono and resampled to a canonical sample rate (typically 22050 Hz) using `librosa.load`.
 
-- **Signature generation & storage**: For each song in the database a `MelodySignature` is saved (pitch contour, pitch values, song id, duration). Signatures are stored on disk (pickle format) in the `database/` folder for quick loading.
+- **Pitch extraction:** The pipeline uses `librosa.pyin` (pYIN) to estimate frame-wise fundamental frequency (F0), voiced/unvoiced state, and confidence scores. pYIN is well suited for humming and vocal melody tracking because it is more robust than simple autocorrelation-based approaches.
 
-- **Matching algorithm**: For matching, the system compares the humming signature to every song signature and computes a distance metric over their contours. This can be a DTW (dynamic time warping) distance computed on either the pitch contour or quantized pitch sequence. Results are scored and normalized into a similarity score used to rank candidates.
+- **Cleaning and interpolation:** Low-confidence frames and unvoiced frames are masked, short gaps are interpolated, and a median filter removes spurious outliers.
 
-- **Metadata enrichment**: Match results are enriched with metadata stored in `database/metadata.json` (title, artist, original filename). The API returns `song_id`, `title`, `artist`, `distance`, `similarity_score`, and a `confidence` label (e.g., `high`, `medium`, `low`).
+- **Contour construction:** Continuous pitch values are converted into a simplified melodic contour with labels of `+1` (rising), `0` (stable), or `-1` (falling). This intentionally reduces sensitivity to absolute pitch and keeps the focus on relative melody movement.
 
-**Design decisions & rationale**
-- Using `pyin` (pYIN) gives a robust pitch estimate for vocals and humming — better than simple autocorrelation-based methods for expressive human singing.
-- Contour quantization (+1/0/-1) reduces sensitivity to absolute pitch (useful when humming in a different key) and focuses on relative melodic motion.
-- DTW provides resilience to tempo differences and incomplete humming samples by aligning sequences non-linearly.
+- **Signature generation and storage:** Each song is stored as a `MelodySignature` containing the pitch contour, raw pitch values, song id, and duration. Signatures are persisted in the `database/` folder for fast loading.
 
-**Performance & tuning**
+- **Matching algorithm:** The humming signature is compared against all song signatures using normalized DTW over contour values. The DTW cost function treats equal contours as `0`, one stable vs. one moving as `1`, and opposite directions as `2`. The final score is converted to similarity with `1 / (1 + distance)`.
+
+- **Metadata enrichment:** Match results are merged with metadata from `database/metadata.json` so the UI can show song title, artist, confidence, and similarity score.
+
+### Design Decisions
+
+- Using `pYIN` gives a robust pitch estimate for vocals and humming.
+- Contour quantization reduces sensitivity to key changes and shifts the comparison toward melodic shape.
+- Sequence-based similarity is more forgiving than exact waveform matching when users hum at a different tempo or with partial phrases.
+
+### Performance & Tuning
+
 - Reducing `hop_length` increases pitch resolution at the cost of CPU.
-- `fmin`/`fmax` can be tuned to match the expected vocal range of your dataset (e.g., narrower range for male-only humming).
-- Database matching is currently an O(N) scan. For large song sets, consider approximate nearest neighbor over learned embeddings (e.g., R-Tree, HNSW over signatures or hashed contours).
+- `fmin` and `fmax` can be adjusted to better match the expected vocal range of the dataset.
+- Database matching is currently an O(N) scan. For larger libraries, an approximate nearest-neighbor layer would be a natural next optimization.
 
-**Troubleshooting & Notes**
-- If the backend fails to import `librosa` or `numpy`, install dependencies via the Python launcher `py -3 -m pip install --user -r requirements.txt` or the venv pip.
-- On Windows, long paths or non-ASCII paths may cause issues with some binary wheels or with the venv launcher; using the `py` launcher or adding the venv `Scripts` path to PATH often helps.
-- You may see a warning if other preinstalled packages require older `numpy` versions (e.g., `openvino`). Those warnings indicate a potential compatibility conflict but do not necessarily break this app.
+## Evaluation
 
-**How you can help me add the screenshots**
-If you want me to copy the six absolute paths you provided into the repository, paste `yes` and I will run the copy commands (I already included the PowerShell commands above). If you prefer to do it yourself, run the commands above from a PowerShell prompt.
+There is no formal benchmark table checked into the repository yet, so this section is intentionally honest about the current state.
 
-**License & Credits**
+- **Current loaded library:** 51 songs in the live backend run
+- **Match output:** ranked candidates with distance, similarity score, and confidence label
+- **Strengths observed in code:** melody-shape matching is resilient to key changes and moderate tempo variation
+- **Recommended next metrics to publish:** Top-1 accuracy, Top-5 accuracy, average query time, and dataset size used for evaluation
+
+## Troubleshooting
+
+- If the backend fails to import `librosa` or `numpy`, install dependencies with the Python launcher: `py -3 -m pip install --user flask flask-cors numpy librosa scipy soundfile`.
+- On Windows, long paths or non-ASCII paths can cause problems for some binary wheels or the venv launcher. Using `py -3` is usually the most reliable approach.
+- You may see warnings about incompatible preinstalled packages such as `openvino`. Those warnings are environment-level conflicts and do not necessarily block this app.
+
+## Credits
+
 - Attribution: Original project code.
 - Libraries: `librosa`, `numpy`, `scipy`, `flask`, `react`, `vite`.
-
----
-
-If you'd like, I can now:
-- copy your screenshots into `docs/screenshots` and embed them in this README (I can do that automatically),
-- add a small architecture diagram file, or
-- generate a short `requirements.txt` and a `start-dev.sh` / `start-dev.ps1` helper.
-
-Tell me which of these you'd like next.

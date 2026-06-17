@@ -1,3 +1,6 @@
 /DATA
 /outputs
 /uploads
+/database/*.wav
+/database/*.sig
+/database/metadata.json
