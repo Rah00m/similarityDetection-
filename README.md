@@ -61,23 +61,6 @@ The screenshots you provided are now stored in the repo-local `Asset/` folder an
 
 ![Screenshot 6](Asset/6.png)
 
-## Architecture
-
-```mermaid
-flowchart TD
-	A[User] --> B[React Frontend]
-	B --> C[Flask API]
-	C --> D[Audio Preprocessing]
-	D --> E[pYIN Pitch Extraction]
-	E --> F[Contour Generation]
-	F --> G[DTW Similarity Matching]
-	G --> H[Song Database]
-	G --> I[Match Results + Metadata]
-	I --> B
-```
-
-The code path behind this flow is implemented in `backend/DATA/melody_matcher.py` and exposed through the Flask routes in `backend/DATA/App.py`.
-
 ## Quickstart (Development)
 
 - Backend (Windows, using `py` launcher):
